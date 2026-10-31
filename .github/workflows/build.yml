@@ -14,15 +14,23 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Unpack project ZIP
         run: |
           set -e
-          Z=$(ls -1 *.zip | head -n 1)
-          echo "Using $Z"
+          # Берём ZIP, который загружали последним
+          Z=$(git log -1 --name-only --diff-filter=AM --pretty=format: -- '*.zip' | grep -v '^$' | head -n 1 || true)
+          if [ -z "$Z" ]; then Z=$(ls -1 *.zip | head -n 1); fi
+          echo "Using: $Z"
+          ls -la
+          df -h . | tail -n 1
           mkdir -p project
-          unzip -q "$Z" -d project
+          ditto -x -k "$Z" project
           D=$(dirname "$(find project -name project.yml | head -n 1)")
+          echo "Project dir: $D"
+          ls -la "$D"
           echo "PROJECT_DIR=$D" >> "$GITHUB_ENV"
 
       - name: Install XcodeGen
